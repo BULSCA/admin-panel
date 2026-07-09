@@ -23,6 +23,16 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Notifications',
+        href: '/notifications',
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Bulsca Admin',
+        href: '/bulsca-admin',
+        icon: LayoutGrid,
+    },
 ];
 
 const footerNavItems: NavItem[] = [
