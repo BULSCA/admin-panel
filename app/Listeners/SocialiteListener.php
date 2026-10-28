@@ -2,10 +2,7 @@
 
 namespace App\Listeners;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 use SocialiteProviders\Authentik\AuthentikExtendSocialite;
-use SocialiteProviders\Manager\SocialiteWasCalled;
 
 class SocialiteListener
 {
