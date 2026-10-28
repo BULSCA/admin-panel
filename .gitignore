@@ -7,6 +7,8 @@
 /public/storage
 /resources/js/actions
 /resources/js/wayfinder
+/resources/js/routes
+/test-results
 /storage/*.key
 /storage/pail
 /vendor

@@ -1,16 +1,19 @@
 <script setup>
 defineProps({
-  content: {
-    type: String,
-    default: ''
-  }
-})
+    content: {
+        type: String,
+        default: '',
+    },
+});
 </script>
 
 <template>
-  <div v-if="content" class="flex items-center justify-center text-white bg-red-600 p-3">
-    <div v-html="content" />
-  </div>
+    <div
+        v-if="content"
+        class="flex items-center justify-center bg-red-600 p-3 text-white"
+    >
+        <div v-html="content" />
+    </div>
 </template>
 
 <style scoped>

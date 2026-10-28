@@ -1,58 +1,114 @@
-name: tests
+name: CI
 
 on:
-  push:
-    branches:
-      - develop
-      - main
-      - master
-      - workos
   pull_request:
-    branches:
-      - develop
-      - main
-      - master
-      - workos
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+  push:
+    branches: [main, 'release/**']
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  ci:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php-version: ['8.3', '8.4', '8.5']
-
+  portal-php:
+    name: Portal PHP checks and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ':memory:'
+      DB_URL: ''
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      MAIL_MAILER: array
+      QUEUE_CONNECTION: sync
     steps:
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # v2
+      - uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: '8.4'
           tools: composer:v2
-          coverage: xdebug
-
-      - name: Setup Node
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+          extensions: dom, mbstring, pdo_sqlite, intl, zip, curl, xml, fileinfo
+          coverage: none
+      - run: composer validate --strict --no-check-publish
+      - run: composer install --prefer-dist --no-interaction --no-progress
+      - run: find app tests database routes config -name '*.php' -print0 | xargs -0 -n1 php -l
+      - run: composer lint:check
+      - name: Full PHPUnit suite without built assets
+        run: |
+          mkdir -p test-results
+          vendor/bin/phpunit --log-junit test-results/phpunit.xml
+      - name: Save PHPUnit results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          node-version: '22'
-
-      - name: Install Node Dependencies
-        run: npm i
-
-      - name: Install Dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Copy Environment File
-        run: cp .env.example .env
-
-      - name: Generate Application Key
-        run: php artisan key:generate
-
-      - name: Build Assets
-        run: npm run build
-
-      - name: Tests
-        run: ./vendor/bin/phpunit
+          name: portal-php-results
+          path: test-results/
+          if-no-files-found: warn
+          retention-days: 7
+  portal-vue:
+    name: Portal Vue checks and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ':memory:'
+      DB_URL: ''
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      MAIL_MAILER: array
+      QUEUE_CONNECTION: sync
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          extensions: dom, mbstring, pdo_sqlite, intl, zip, curl, xml, fileinfo
+          coverage: none
+      - run: composer validate --strict --no-check-publish
+      - run: composer install --prefer-dist --no-interaction --no-progress
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Generate development route bindings without building assets
+        run: php artisan wayfinder:generate --with-form --skip-routes
+      - run: npm run lint:check
+      - run: npm run format:check
+      - run: npm run types:check
+      - run: npm run test:run
+  required:
+    name: Required CI
+    if: ${{ always() }}
+    needs: [portal-php, portal-vue]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every prerequisite job to succeed
+        env:
+          CHECK_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, sys
+          results = json.loads(os.environ['CHECK_RESULTS'])
+          failures = {name: job['result'] for name, job in results.items() if job['result'] != 'success'}
+          print(json.dumps(results, indent=2))
+          if not results or failures:
+              print('Required jobs did not all succeed:', failures)
+              sys.exit(1)
+          PYTHON
