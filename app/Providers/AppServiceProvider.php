@@ -8,8 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
-use Laravel\Socialite\Facades\Socialite;
-
+use SocialiteProviders\Authentik\Provider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
 class AppServiceProvider extends ServiceProvider
@@ -30,10 +29,9 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
 
         Event::listen(SocialiteWasCalled::class, function (SocialiteWasCalled $event) {
-            $event->extendSocialite('authentik', \SocialiteProviders\Authentik\Provider::class);
+            $event->extendSocialite('authentik', Provider::class);
         });
     }
-
 
     /**
      * Configure default behaviors for production-ready applications.

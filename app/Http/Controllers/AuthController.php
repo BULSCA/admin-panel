@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -14,6 +13,7 @@ class AuthController extends Controller
     {
         /** @var AbstractProvider $driver */
         $driver = Socialite::driver('authentik');
+
         return $driver->stateless()->redirect();
     }
 
@@ -27,8 +27,8 @@ class AuthController extends Controller
         $user = User::updateOrCreate(
             ['authentik_id' => $socialUser->getId()],
             [
-                'name'     => $socialUser->getName(),
-                'email'    => $socialUser->getEmail(),
+                'name' => $socialUser->getName(),
+                'email' => $socialUser->getEmail(),
                 'password' => $user->password ?? bcrypt(str()->random(32)),
             ]
         );
@@ -46,8 +46,8 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         $logoutUrl = config('services.authentik.base_url')
-            . '/application/o/' . config('services.authentik.slug') . '/end-session/'
-            . '?redirect_uri=' . urlencode(config('app.url'));
+            .'/application/o/'.config('services.authentik.slug').'/end-session/'
+            .'?redirect_uri='.urlencode(config('app.url'));
 
         if ($request->expectsJson()) {
             return response()->json(['redirect' => $logoutUrl]);
