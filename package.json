@@ -4,14 +4,15 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "build:ssr": "vite build && vite build --ssr",
         "dev": "vite",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
         "lint:check": "eslint .",
         "types:check": "vue-tsc --noEmit",
-        "test:run": "vitest run"
+        "test:run": "vitest run",
+        "dev:legacy": "vite --config vite.inertia.config.ts",
+        "build:legacy": "vite build --config vite.inertia.config.ts"
     },
     "devDependencies": {
         "@eslint/js": "^9.19.0",
@@ -50,6 +51,7 @@
         "typescript": "^5.2.2",
         "vite": "^8.0.0",
         "vue": "^3.5.13",
+        "vue-router": "4.6.4",
         "vue-sonner": "^2.0.9"
     },
     "optionalDependencies": {
